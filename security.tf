@@ -15,6 +15,7 @@ resource "yandex_vpc_security_group" "bastion_sg" {
     v4_cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 resource "yandex_vpc_security_group" "web_sg" {
   name        = "web-sg"
   network_id  = yandex_vpc_network.vpc.id

@@ -18,27 +18,27 @@ resource "yandex_vpc_subnet" "subnet_b" {
 
 resource "yandex_vpc_gateway" "nat" {
   name      = "demo-nat-gateway"
-  network_id = yandex_vpc_network.vpc.id
+  folder_id = var.yc_folder_id
+  internet_gateway {} 
 }
 
-resource "yandex_vpc_route_table" "route-table" {
+resource "yandex_vpc_route_table" "route_table" {
   name       = "default-route-table"
   network_id = yandex_vpc_network.vpc.id
+  folder_id  = var.yc_folder_id
 
   static_route {
     destination_prefix = "0.0.0.0/0"
     gateway_id         = yandex_vpc_gateway.nat.id
   }
-}
 
-resource "yandex_vpc_subnet_route_table_attachment" "subnet_a_attachment" {
-  subnet_id      = yandex_vpc_subnet.subnet_a.id
-  route_table_id = yandex_vpc_route_table.route-table.id
-}
+  attached_subnets {
+    subnet_id = yandex_vpc_subnet.subnet_a.id
+  }
 
-resource "yandex_vpc_subnet_route_table_attachment" "subnet_b_attachment" {
-  subnet_id      = yandex_vpc_subnet.subnet_b.id
-  route_table_id = yandex_vpc_route_table.route-table.id
+  attached_subnets {
+    subnet_id = yandex_vpc_subnet.subnet_b.id
+  }
 }
 
 resource "yandex_compute_instance" "bastion" {
@@ -53,21 +53,18 @@ resource "yandex_compute_instance" "bastion" {
 
   boot_disk {
     initialize_params {
-      image_id = "fd8pfd17g205ujpmpb0a" # ID образа Ubuntu
+      image_id = "fd8pfd17g205ujpmpb0a"
     }
   }
 
   network_interface {
-    subnet_id = yandex_vpc_subnet.subnet_a.id
-    nat       = true  # Чтобы получить внешний IP для bastion
-    security_group_ids = [
-      yandex_vpc_security_group.bastion_sg.id
-    ]
+    subnet_id          = yandex_vpc_subnet.subnet_a.id
+    nat                = true
+    security_group_ids = [yandex_vpc_security_group.bastion_sg.id]
   }
 
-  # Нужно прописать SSH ключ
   metadata = {
-    ssh-keys = "ubuntu:${file(/home/tds/.ssh/id_rsa.pub/id_rsa)}"
+    ssh-keys = "ubuntu:${file("/home/tds/.ssh/id_rsa.pub")}"
   }
 }
 
@@ -88,15 +85,13 @@ resource "yandex_compute_instance" "web_a" {
   }
 
   network_interface {
-    subnet_id = yandex_vpc_subnet.subnet_a.id
-    nat       = false
-    security_group_ids = [
-      yandex_vpc_security_group.web_sg.id
-    ]
+    subnet_id          = yandex_vpc_subnet.subnet_a.id
+    nat                = false
+    security_group_ids = [yandex_vpc_security_group.web_sg.id]
   }
 
   metadata = {
-    ssh-keys = "ubuntu:${file(/home/tds/.ssh/id_rsa.pub/id_rsa)}"
+    ssh-keys = "ubuntu:${file("/home/tds/.ssh/id_rsa.pub")}"
   }
 }
 
@@ -117,14 +112,12 @@ resource "yandex_compute_instance" "web_b" {
   }
 
   network_interface {
-    subnet_id = yandex_vpc_subnet.subnet_b.id
-    nat       = false
-    security_group_ids = [
-      yandex_vpc_security_group.web_sg.id
-    ]
+    subnet_id          = yandex_vpc_subnet.subnet_b.id
+    nat                = false
+    security_group_ids = [yandex_vpc_security_group.web_sg.id]
   }
 
   metadata = {
-    ssh-keys = "ubuntu:${file(/home/tds/.ssh/id_rsa.pub/id_rsa)}"
+    ssh-keys = "ubuntu:${file("/home/tds/.ssh/id_rsa.pub")}"
   }
 }
