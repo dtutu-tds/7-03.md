@@ -7,6 +7,7 @@ resource "yandex_vpc_subnet" "subnet_a" {
   zone           = "ru-central1-a"
   network_id     = yandex_vpc_network.vpc.id
   v4_cidr_blocks = ["10.128.0.0/24"]
+  route_table_id = yandex_vpc_route_table.route_table.id
 }
 
 resource "yandex_vpc_subnet" "subnet_b" {
@@ -14,30 +15,24 @@ resource "yandex_vpc_subnet" "subnet_b" {
   zone           = "ru-central1-b"
   network_id     = yandex_vpc_network.vpc.id
   v4_cidr_blocks = ["10.129.0.0/24"]
+  route_table_id = yandex_vpc_route_table.route_table.id
 }
 
-resource "yandex_vpc_gateway" "nat" {
-  name      = "demo-nat-gateway"
+resource "yandex_vpc_gateway" "internet" {
+  name      = "internet-gateway"
   folder_id = var.yc_folder_id
-  internet_gateway {} 
+
+  shared_egress_gateway {}
 }
 
 resource "yandex_vpc_route_table" "route_table" {
   name       = "default-route-table"
-  network_id = yandex_vpc_network.vpc.id
   folder_id  = var.yc_folder_id
+  network_id = yandex_vpc_network.vpc.id
 
   static_route {
     destination_prefix = "0.0.0.0/0"
-    gateway_id         = yandex_vpc_gateway.nat.id
-  }
-
-  attached_subnets {
-    subnet_id = yandex_vpc_subnet.subnet_a.id
-  }
-
-  attached_subnets {
-    subnet_id = yandex_vpc_subnet.subnet_b.id
+    gateway_id         = yandex_vpc_gateway.internet.id
   }
 }
 
@@ -64,8 +59,15 @@ resource "yandex_compute_instance" "bastion" {
   }
 
   metadata = {
-    ssh-keys = "ubuntu:${file("/home/tds/.ssh/id_rsa.pub")}"
-  }
+    ssh-keys = "tds:${file(var.public_ssh_key_path)}"
+    user-data = <<-EOF
+      #cloud-config
+      users:
+        - name: tds
+          sudo: ALL=(ALL) NOPASSWD:ALL
+          shell: /bin/bash
+    EOF
+}
 }
 
 resource "yandex_compute_instance" "web_a" {
@@ -91,7 +93,14 @@ resource "yandex_compute_instance" "web_a" {
   }
 
   metadata = {
-    ssh-keys = "ubuntu:${file("/home/tds/.ssh/id_rsa.pub")}"
+    ssh-keys = "tds:${file(var.public_ssh_key_path)}"
+    user-data = <<-EOF
+      #cloud-config
+      users:
+        - name: tds
+          sudo: ALL=(ALL) NOPASSWD:ALL
+          shell: /bin/bash
+    EOF
   }
 }
 
@@ -107,7 +116,7 @@ resource "yandex_compute_instance" "web_b" {
 
   boot_disk {
     initialize_params {
-      image_id = "d8pfd17g205ujpmpb0a"
+      image_id = "fd8pfd17g205ujpmpb0a"
     }
   }
 
@@ -118,6 +127,13 @@ resource "yandex_compute_instance" "web_b" {
   }
 
   metadata = {
-    ssh-keys = "ubuntu:${file("/home/tds/.ssh/id_rsa.pub")}"
+    ssh-keys = "tds:${file(var.public_ssh_key_path)}"
+    user-data = <<-EOF
+      #cloud-config
+      users:
+        - name: tds
+          sudo: ALL=(ALL) NOPASSWD:ALL
+          shell: /bin/bash
+    EOF
   }
 }

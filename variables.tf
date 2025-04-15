@@ -17,7 +17,5 @@ variable "service_account_key_file" {
 }
 
 variable "public_ssh_key_path" {
-  type        = string
-  default     = "~/.ssh/id_rsa.pub"
-  description = "Путь к публичному SSH-ключу, который будет прописан на ВМ"
+  default = "/home/tds/.ssh/yandex_id_rsa.pub"
 }

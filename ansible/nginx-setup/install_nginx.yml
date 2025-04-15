@@ -1,0 +1,27 @@
+---
+- name: Установить и запустить Nginx
+  hosts: web
+  become: true
+  tasks:
+
+    - name: Обновить apt-репозиторий
+      apt:
+        update_cache: yes
+
+    - name: Установить nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Убедиться, что nginx запущен
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Создать кастомную главную страницу
+      copy:
+        dest: /var/www/html/index.html
+        content: |
+          <h1>Hello from {{ inventory_hostname }}</h1>
+          <p>Deployed via Ansible 💥</p>
